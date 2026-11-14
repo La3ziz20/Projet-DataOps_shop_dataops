@@ -1,0 +1,13 @@
+dataset: frankfurter_fx
+columns:
+  rate_date:
+    not_null: true
+  base:
+    not_null: true
+    allowed_values:
+      - EUR
+  currency:
+    not_null: true
+  rate:
+    not_null: true
+    min: 0.0001

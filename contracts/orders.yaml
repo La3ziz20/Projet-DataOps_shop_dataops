@@ -1,0 +1,26 @@
+dataset: orders
+columns:
+  order_id:
+    not_null: true
+    unique: true
+  order_date:
+    not_null: true
+  customer_id:
+    not_null: true
+  country:
+    not_null: true
+    allowed_values:
+      - France
+      - Germany
+      - Italy
+      - Morocco
+      - Tunisia
+  product:
+    not_null: true
+  quantity:
+    not_null: true
+    min: 1
+  unit_price:
+    not_null: true
+    min: 0.01
+    max: 1000.0
