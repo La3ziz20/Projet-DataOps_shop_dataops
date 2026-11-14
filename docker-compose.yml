@@ -1,0 +1,10 @@
+services:
+  flow-runner:
+    build: .
+    env_file:
+      - path: .env
+        required: false
+    volumes:
+      - ./data:/app/data
+      - ./warehouse:/app/warehouse
+      - ./logs:/app/logs
