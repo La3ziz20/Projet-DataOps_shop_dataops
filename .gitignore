@@ -8,4 +8,5 @@ warehouse/*.duckdb.wal
 logs/
 dbt/target/
 dbt/logs/
+dbt/.user.yml
 .env

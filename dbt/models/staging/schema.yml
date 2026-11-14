@@ -1,0 +1,61 @@
+version: 2
+
+sources:
+  - name: raw
+    schema: main
+    tables:
+      - name: raw_orders
+      - name: raw_fx_rates
+
+models:
+  - name: stg_orders
+    description: "Cleaned shop orders staged from raw_orders."
+    columns:
+      - name: order_id
+        tests:
+          - not_null
+          - unique
+      - name: order_date
+        tests:
+          - not_null
+      - name: customer_id
+        tests:
+          - not_null
+      - name: country
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['France', 'Germany', 'Italy', 'Morocco', 'Tunisia']
+      - name: quantity
+        tests:
+          - not_null
+      - name: unit_price
+        tests:
+          - not_null
+      - name: revenue
+        tests:
+          - not_null
+
+  - name: stg_fx_rates
+    description: "EUR to USD daily exchange rates staged from raw_fx_rates."
+    columns:
+      - name: rate_date
+        tests:
+          - not_null
+          - unique
+      - name: base
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['EUR']
+      - name: currency
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['USD']
+      - name: rate
+        tests:
+          - not_null

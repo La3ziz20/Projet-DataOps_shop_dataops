@@ -1,0 +1,18 @@
+version: 2
+
+models:
+  - name: mart_revenue_daily
+    description: "Daily revenue per country in EUR and USD."
+    columns:
+      - name: order_date
+        tests:
+          - not_null
+      - name: country
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['France', 'Germany', 'Italy', 'Morocco', 'Tunisia']
+      - name: revenue_eur
+        tests:
+          - not_null
