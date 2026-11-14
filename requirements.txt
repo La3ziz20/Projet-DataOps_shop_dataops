@@ -1,0 +1,7 @@
+pandas>=2.0
+pytest>=7.0
+requests>=2.31
+duckdb>=1.0
+dbt-duckdb
+pyyaml
+prefect

@@ -1,0 +1,1 @@
+"""FX rate ingestion package."""
