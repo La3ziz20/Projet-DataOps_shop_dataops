@@ -21,21 +21,21 @@ def run_checks(
             )
 
     # Check raw_orders row count and latest order_date
-    orders_row = con.execute(
+    orders_rows = con.execute(
         "SELECT COUNT(*), MAX(order_date) FROM raw_orders"
-    ).fetchone()
-    orders_count = orders_row[0] if orders_row else 0
-    latest_order_date = orders_row[1] if orders_row else None
+    ).fetchall()
+    orders_count = orders_rows[0][0] if orders_rows else 0
+    latest_order_date = orders_rows[0][1] if orders_rows else None
 
     if orders_count == 0:
         problems.append("No orders loaded in raw_orders (0 rows)")
 
     # Check raw_fx_rates row count and latest rate_date
-    fx_row = con.execute(
+    fx_rows = con.execute(
         "SELECT COUNT(*), MAX(rate_date) FROM raw_fx_rates"
-    ).fetchone()
-    fx_count = fx_row[0] if fx_row else 0
-    latest_rate_date = fx_row[1] if fx_row else None
+    ).fetchall()
+    fx_count = fx_rows[0][0] if fx_rows else 0
+    latest_rate_date = fx_rows[0][1] if fx_rows else None
 
     if fx_count == 0:
         problems.append("No FX rates loaded in raw_fx_rates (0 rows)")
@@ -49,7 +49,7 @@ def run_checks(
             WHERE rate_date = ? AND base = 'EUR' AND currency = 'USD'
             """,
             [latest_order_date],
-        ).fetchone()[0]
+        ).fetchall()[0][0]
         if matching_fx == 0:
             problems.append(
                 f"No FX rate for the latest order date ({latest_order_date}); latest rate_date is {latest_rate_date}"

@@ -57,6 +57,8 @@ def upsert_fx(con: duckdb.DuckDBPyConnection, df: pd.DataFrame) -> int:
     # Normalize rate_date to ISO date string so DuckDB casts cleanly to DATE
     staging["rate_date"] = pd.to_datetime(staging["rate_date"]).dt.strftime("%Y-%m-%d")
 
+    # Complete any pending cursor results on the connection before registering the DataFrame
+    con.complete()
     con.register("fx_staging", staging)
     # INSERT OR REPLACE overwrites existing primary key matches without creating duplicates
     con.execute(
@@ -65,7 +67,7 @@ def upsert_fx(con: duckdb.DuckDBPyConnection, df: pd.DataFrame) -> int:
         SELECT CAST(rate_date AS DATE), base, currency, rate
         FROM fx_staging
         """
-    )
+    ).fetchall()
     con.unregister("fx_staging")
     return len(staging)
 
@@ -93,6 +95,7 @@ def upsert_orders(con: duckdb.DuckDBPyConnection, df: pd.DataFrame) -> int:
         ]
     ].drop_duplicates(subset=["order_id"], keep="first")
 
+    con.complete()
     con.register("orders_staging", staging)
     # INSERT OR REPLACE overwrites existing order_id rows idempotently
     con.execute(
@@ -111,6 +114,6 @@ def upsert_orders(con: duckdb.DuckDBPyConnection, df: pd.DataFrame) -> int:
             CAST(revenue AS DOUBLE)
         FROM orders_staging
         """
-    )
+    ).fetchall()
     con.unregister("orders_staging")
     return len(staging)
