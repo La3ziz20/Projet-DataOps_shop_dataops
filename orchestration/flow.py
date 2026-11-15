@@ -18,6 +18,7 @@ import pandas as pd
 from prefect import flow, task
 
 from ingestion.fx import fetch_rates
+from ingestion.orders_generator import generate_daily_orders
 from monitoring.alerts import send_alert
 from monitoring.checks import run_checks
 from pipeline.extract import read_orders
@@ -134,15 +135,22 @@ def task_monitoring_checks(
 
 @flow(name="shop-dataops-daily-flow", log_prints=True)
 def shop_dataops_flow(
-    run_date: str = "2026-10-05",
-    orders_path: str = "data/raw/orders_day1.csv",
+    run_date: str | None = None,
+    orders_path: str | None = None,
     db_path: str = DEFAULT_DB_PATH,
 ) -> dict[str, int]:
     """Orchestrate daily ingestion, cleaning, contract checks, DuckDB load, dbt build, and monitoring."""
+    effective_date = run_date or dt_date.today().isoformat()
+    # If no static orders CSV path is passed (e.g. during scheduled daily runs), generate/fetch the daily orders file
+    effective_orders = (
+        orders_path
+        if orders_path is not None
+        else str(generate_daily_orders(effective_date))
+    )
     try:
-        print(f"Starting shop-dataops flow for date={run_date}, orders={orders_path}")
-        fx_df = task_fetch_fx(run_date)
-        raw_df = task_read_orders(orders_path)
+        print(f"Starting shop-dataops flow for date={effective_date}, orders={effective_orders}")
+        fx_df = task_fetch_fx(effective_date)
+        raw_df = task_read_orders(effective_orders)
         task_check_schema(raw_df)
         clean_df, rejected_df = task_clean_orders(raw_df)
         print(
@@ -161,7 +169,7 @@ def shop_dataops_flow(
         return {"fx_rows": n_fx, "order_rows": n_orders, "rejected_rows": len(rejected_df)}
     except Exception as exc:
         # Send alert to logs/alerts.log, stdout, and configured Slack/Email channels
-        send_alert(f"Pipeline failed for date={run_date}, orders={orders_path}: {exc}")
+        send_alert(f"Pipeline failed for date={effective_date}, orders={effective_orders}: {exc}")
         raise
 
 
@@ -212,12 +220,13 @@ if __name__ == "__main__":
     try:
         if args.serve:
             # Automatic daily execution scheduled via Prefect flow.serve(cron=...)
+            # Passing None for run_date and orders_path makes each scheduled run dynamically target today's date
             shop_dataops_flow.serve(
                 name="shop-dataops-daily-schedule",
                 cron=args.cron,
                 parameters={
-                    "run_date": args.date,
-                    "orders_path": args.orders,
+                    "run_date": None,
+                    "orders_path": None,
                     "db_path": args.db_path,
                 },
             )

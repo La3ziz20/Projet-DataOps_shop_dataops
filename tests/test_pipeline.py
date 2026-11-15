@@ -1,6 +1,7 @@
 import pandas as pd
 import pytest
 
+from ingestion.orders_generator import generate_daily_orders
 from pipeline.transform import clean_orders, revenue_by_country
 from pipeline.validate import DataQualityError, check_schema
 
@@ -62,3 +63,15 @@ def test_check_schema_stops_on_missing_column():
     orders = make_orders([{"order_id": 1}]).rename(columns={"unit_price": "price"})
     with pytest.raises(DataQualityError):
         check_schema(orders)
+
+
+def test_daily_orders_generator_creates_valid_csv(tmp_path):
+    """Automated daily generator creates a valid orders CSV for any new scheduled date."""
+    csv_path = generate_daily_orders("2026-10-14", output_dir=tmp_path)
+    assert csv_path.exists()
+    df = pd.read_csv(csv_path)
+    check_schema(df)
+    clean, rejected = clean_orders(df)
+    assert len(clean) == len(df)
+    assert len(rejected) == 0
+
