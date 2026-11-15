@@ -1,0 +1,9 @@
+order_id,order_date,customer_id,country,product,quantity,unit_price
+4001,2026-10-08,C011,France,Office chair,3,449.0
+4002,2026-10-08,C012,Germany,Monitor,4,229.0
+4003,2026-10-08,C018,Italy,Keyboard,5,45.0
+4004,2026-10-08,C022,Morocco,Headset,3,59.5
+4005,2026-10-08,C030,Tunisia,Webcam,4,39.0
+4006,2026-10-08,C035,France,Monitor,2,229.0
+4007,2026-10-08,C041,Germany,Office chair,2,449.0
+4008,2026-10-08,C014,Tunisia,Desk lamp,3,29.0

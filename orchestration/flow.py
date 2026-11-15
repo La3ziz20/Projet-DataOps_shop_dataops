@@ -31,6 +31,15 @@ REJECTED_PATH = "data/rejected/rejected_orders.csv"
 ORDERS_CONTRACT_PATH = "contracts/orders.yaml"
 FX_CONTRACT_PATH = "contracts/frankfurter.yaml"
 
+# Valid multi-day sample batches for seeding a full 5-day history
+VALID_SAMPLE_BATCHES = [
+    ("2026-10-05", "data/raw/orders_day1.csv"),
+    ("2026-10-08", "data/raw/orders_day4.csv"),
+    ("2026-10-09", "data/raw/orders_day5.csv"),
+    ("2026-10-12", "data/raw/orders_day6.csv"),
+    ("2026-10-13", "data/raw/orders_day7.csv"),
+]
+
 
 @task(name="fetch-fx")
 def task_fetch_fx(day: str) -> pd.DataFrame:
@@ -92,20 +101,22 @@ def task_dbt_build(db_path: str = DEFAULT_DB_PATH) -> str:
     # Locate the dbt executable in the current Python environment or system PATH
     dbt_bin = shutil.which("dbt") or str(Path(sys.executable).parent / "dbt")
     cmd = [dbt_bin, "build", "--project-dir", "dbt", "--profiles-dir", "dbt"]
-    env_Copy = dict(**__import__("os").environ)
-    env_Copy["WAREHOUSE_DB_PATH"] = db_path
+    env_copy = dict(os.environ)
+    env_copy["WAREHOUSE_DB_PATH"] = db_path
 
     result = subprocess.run(
         cmd,
         cwd=str(PROJECT_ROOT),
-        env=env_Copy,
+        env=env_copy,
         capture_output=True,
         text=True,
         check=False,
     )
     print(result.stdout)
     if result.returncode != 0:
-        raise RuntimeError(f"dbt build failed (exit {result.returncode}):\n{result.stdout}\n{result.stderr}")
+        raise RuntimeError(
+            f"dbt build failed (exit {result.returncode}):\n{result.stdout}\n{result.stderr}"
+        )
     return result.stdout
 
 
@@ -149,14 +160,20 @@ def shop_dataops_flow(
         print("Monitoring checks passed with 0 problems.")
         return {"fx_rows": n_fx, "order_rows": n_orders, "rejected_rows": len(rejected_df)}
     except Exception as exc:
-        # Send alert to logs/alerts.log and stdout whenever any task or freshness check fails
+        # Send alert to logs/alerts.log, stdout, and configured Slack/Email channels
         send_alert(f"Pipeline failed for date={run_date}, orders={orders_path}: {exc}")
         raise
 
 
+def run_all_valid_days(db_path: str = DEFAULT_DB_PATH) -> None:
+    """Ingest all 5 valid sample days into the warehouse and run dbt build + checks."""
+    for day, orders_file in VALID_SAMPLE_BATCHES:
+        shop_dataops_flow(run_date=day, orders_path=orders_file, db_path=db_path)
+
+
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
-    """Parse CLI arguments with defaults for date and orders path."""
-    parser = argparse.ArgumentParser(description="Run the shop-dataops Prefect flow.")
+    """Parse CLI arguments with defaults for date, orders path, and daily scheduling."""
+    parser = argparse.ArgumentParser(description="Run or schedule the shop-dataops Prefect flow.")
     parser.add_argument(
         "--date",
         default=dt_date.today().isoformat(),
@@ -172,13 +189,44 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         default=DEFAULT_DB_PATH,
         help="Path to the DuckDB warehouse file.",
     )
+    parser.add_argument(
+        "--all-valid-days",
+        action="store_true",
+        help="Load all 5 valid sample order days (Days 1, 4, 5, 6, 7) into the warehouse.",
+    )
+    parser.add_argument(
+        "--serve",
+        action="store_true",
+        help="Start a scheduled daily Prefect deployment using flow.serve(cron=...).",
+    )
+    parser.add_argument(
+        "--cron",
+        default="0 6 * * *",
+        help="Cron schedule expression when running with --serve (default: '0 6 * * *' daily at 06:00 UTC).",
+    )
     return parser.parse_args(argv)
 
 
 if __name__ == "__main__":
     args = parse_args()
     try:
-        shop_dataops_flow(run_date=args.date, orders_path=args.orders, db_path=args.db_path)
+        if args.serve:
+            # Automatic daily execution scheduled via Prefect flow.serve(cron=...)
+            shop_dataops_flow.serve(
+                name="shop-dataops-daily-schedule",
+                cron=args.cron,
+                parameters={
+                    "run_date": args.date,
+                    "orders_path": args.orders,
+                    "db_path": args.db_path,
+                },
+            )
+        elif args.all_valid_days:
+            run_all_valid_days(db_path=args.db_path)
+        else:
+            shop_dataops_flow(
+                run_date=args.date, orders_path=args.orders, db_path=args.db_path
+            )
     except Exception:
         # Exit with a non-zero status code when the flow fails
         sys.exit(1)

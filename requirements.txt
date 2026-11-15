@@ -5,3 +5,6 @@ duckdb>=1.0
 dbt-duckdb
 pyyaml
 prefect
+streamlit
+plotly
+

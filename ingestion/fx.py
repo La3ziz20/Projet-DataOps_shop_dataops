@@ -1,8 +1,10 @@
+import os
+
 import pandas as pd
 import requests
 
-# Single place for the Frankfurter API base URL (fallback: https://api.frankfurter.dev/v1)
-BASE_URL = "https://api.frankfurter.app"
+# Single place for the Frankfurter API base URL (modern host: https://api.frankfurter.dev/v1)
+BASE_URL = os.getenv("FRANKFURTER_BASE_URL", "https://api.frankfurter.dev/v1")
 TIMEOUT_SECONDS = 10
 
 

@@ -1,0 +1,8 @@
+order_id,order_date,customer_id,country,product,quantity,unit_price
+6001,2026-10-12,C005,Germany,Office chair,4,449.0
+6002,2026-10-12,C013,France,Monitor,3,229.0
+6003,2026-10-12,C017,Italy,Webcam,5,39.0
+6004,2026-10-12,C021,Tunisia,Monitor,2,229.0
+6005,2026-10-12,C028,Morocco,Headset,4,59.5
+6006,2026-10-12,C033,Germany,Keyboard,4,45.0
+6007,2026-10-12,C039,France,Desk lamp,5,29.0

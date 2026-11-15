@@ -1,6 +1,7 @@
 services:
   flow-runner:
     build: .
+    command: ["python", "orchestration/flow.py", "--all-valid-days"]
     env_file:
       - path: .env
         required: false
@@ -8,3 +9,18 @@ services:
       - ./data:/app/data
       - ./warehouse:/app/warehouse
       - ./logs:/app/logs
+
+  dashboard:
+    build: .
+    command: ["streamlit", "run", "dashboard/app.py", "--server.port=8501", "--server.address=0.0.0.0"]
+    ports:
+      - "8501:8501"
+    env_file:
+      - path: .env
+        required: false
+    volumes:
+      - ./data:/app/data
+      - ./warehouse:/app/warehouse
+      - ./logs:/app/logs
+    depends_on:
+      - flow-runner

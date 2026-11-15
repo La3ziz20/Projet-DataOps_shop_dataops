@@ -19,10 +19,10 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Run pytest unit and data contract tests
+      - name: Run pytest unit, contract, advisor, and alerting tests
         run: python -m pytest
 
-      - name: Seed sample orders and FX into DuckDB and run dbt build
+      - name: Ingest all 5 valid sample days and run dbt build
         run: |
-          python orchestration/flow.py --date 2026-10-05 --orders data/raw/orders_day1.csv
+          python orchestration/flow.py --all-valid-days
           dbt build --project-dir dbt --profiles-dir dbt

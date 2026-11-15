@@ -1,0 +1,8 @@
+order_id,order_date,customer_id,country,product,quantity,unit_price
+7001,2026-10-13,C004,Tunisia,Office chair,3,449.0
+7002,2026-10-13,C009,Italy,Office chair,4,449.0
+7003,2026-10-13,C015,Morocco,Monitor,3,229.0
+7004,2026-10-13,C020,France,Headset,6,59.5
+7005,2026-10-13,C027,Germany,Webcam,4,39.0
+7006,2026-10-13,C032,Italy,Monitor,2,229.0
+7007,2026-10-13,C042,Tunisia,Keyboard,5,45.0

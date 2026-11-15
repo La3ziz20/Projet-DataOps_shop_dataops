@@ -1,5 +1,8 @@
+from unittest.mock import patch
+
 import pandas as pd
 
+from monitoring.alerts import send_alert
 from monitoring.checks import run_checks
 from warehouse.store import connect, upsert_fx, upsert_orders
 
@@ -66,3 +69,20 @@ def test_monitoring_check_flags_empty_table(tmp_path):
         assert any("No FX rates loaded" in p for p in problems)
     finally:
         con.close()
+
+
+def test_send_alert_writes_log_and_triggers_webhook(tmp_path, monkeypatch):
+    """Alert module writes to alerts.log and posts to Slack/Webhook URL when configured."""
+    log_file = tmp_path / "alerts.log"
+    monkeypatch.setenv("ALERT_WEBHOOK_URL", "https://hooks.slack.com/services/T00/B00/X00")
+
+    with patch("monitoring.alerts.requests.post") as mock_post:
+        mock_post.return_value.status_code = 200
+        mock_post.return_value.raise_for_status = lambda: None
+        formatted = send_alert("Test failure alert", log_path=log_file)
+
+    assert "ALERT: Test failure alert" in formatted
+    assert log_file.exists()
+    assert "Test failure alert" in log_file.read_text(encoding="utf-8")
+    mock_post.assert_called_once()
+
