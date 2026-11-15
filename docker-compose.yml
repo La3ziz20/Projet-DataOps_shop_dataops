@@ -23,4 +23,5 @@ services:
       - ./warehouse:/app/warehouse
       - ./logs:/app/logs
     depends_on:
-      - flow-runner
+      flow-runner:
+        condition: service_completed_successfully
