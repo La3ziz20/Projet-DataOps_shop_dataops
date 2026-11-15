@@ -1,0 +1,46 @@
+name: Daily Scheduled DataOps Pipeline
+
+on:
+  schedule:
+    # Runs automatically every day at 06:00 UTC on GitHub's cloud infrastructure (even when laptops are off)
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+    inputs:
+      run_date:
+        description: "Target date (YYYY-MM-DD), leave empty for today"
+        required: false
+        default: ""
+      orders_path:
+        description: "Path to orders CSV (leave empty to auto-generate daily orders)"
+        required: false
+        default: ""
+
+jobs:
+  daily-pipeline:
+    runs-on: ubuntu-latest
+    env:
+      # Optional Slack/Discord incoming webhook URL and SMTP settings stored in GitHub Secrets
+      ALERT_WEBHOOK_URL: ${{ secrets.ALERT_WEBHOOK_URL }}
+      ALERT_SMTP_HOST: ${{ secrets.ALERT_SMTP_HOST }}
+      ALERT_SMTP_PORT: ${{ secrets.ALERT_SMTP_PORT }}
+      ALERT_SMTP_USER: ${{ secrets.ALERT_SMTP_USER }}
+      ALERT_SMTP_PASSWORD: ${{ secrets.ALERT_SMTP_PASSWORD }}
+      ALERT_EMAIL_TO: ${{ secrets.ALERT_EMAIL_TO }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Seed historical 5 valid days and run today's daily pipeline
+        run: |
+          python orchestration/flow.py --all-valid-days
+          if [ -n "${{ github.event.inputs.run_date }}" ] && [ -n "${{ github.event.inputs.orders_path }}" ]; then
+            python orchestration/flow.py --date "${{ github.event.inputs.run_date }}" --orders "${{ github.event.inputs.orders_path }}"
+          fi

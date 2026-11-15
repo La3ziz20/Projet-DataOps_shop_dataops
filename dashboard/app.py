@@ -152,7 +152,7 @@ with tab_health:
     )
 
     if Path(DB_PATH).exists():
-        con = connect(str(DB_PATH))
+        con = duckdb.connect(str(DB_PATH), read_only=True)
         try:
             problems = run_checks(con)
             orders_stats = con.execute(
@@ -213,7 +213,7 @@ with tab_ai:
         st.json(fx_contract)
 
     if Path(DB_PATH).exists():
-        con = connect(str(DB_PATH))
+        con = duckdb.connect(str(DB_PATH), read_only=True)
         try:
             rec = generate_dbt_test_recommendations(con)
         finally:

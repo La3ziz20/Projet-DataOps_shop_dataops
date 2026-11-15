@@ -2,8 +2,8 @@
 
 ## Team Members
 
-- Member 1: `<Last Name, First Name>`
-- Member 2: `<Last Name, First Name>`
+- Member 1: `<Mohamed Aziz Manai>`
+- Member 2: `<Koussay Sassi>`
 
 ---
 
@@ -61,7 +61,12 @@
 
 - **Orchestration (`orchestration/flow.py`)**:
   - Executes 9 Prefect `@task` steps in strict order: `fetch-fx` $\rightarrow$ `read-orders` $\rightarrow$ `check-schema` $\rightarrow$ `clean-orders` $\rightarrow$ `check-reject-rate` $\rightarrow$ `check-contracts` $\rightarrow$ `upsert-warehouse` $\rightarrow$ `dbt-build` $\rightarrow$ `monitoring-checks`.
-  - Supports one-shot CLI runs (`--date`, `--orders`, `--all-valid-days`) and persistent scheduled runs (`--serve --cron "0 6 * * *"`).
+  - **Where the Scheduled Flow Runs (Always-On Cloud Host vs. Local)**:
+    1. **Cloud-Hosted Daily Schedule (`.github/workflows/daily_schedule.yml`)**: Runs automatically every day at `06:00 UTC` (`cron: "0 6 * * *"`) on GitHub's managed Ubuntu runners — even when all team laptops are turned off — and injects `secrets.ALERT_WEBHOOK_URL` for Slack/Discord notifications.
+    2. **Persistent Worker / Prefect Cloud (`orchestration/flow.py --serve --cron "0 6 * * *"`)**: Can also run inside a long-lived Docker container or against a Prefect Cloud workspace (`prefect cloud login --key ${{ secrets.PREFECT_API_KEY }}`).
+  - **AWS Deployment Strategy (Separate Gated Task — `.github/workflows/aws_deploy.yml`)**:
+    - Per project rules, AWS deployment is isolated in `.github/workflows/aws_deploy.yml` (`workflow_dispatch`) and gated behind an explicit `confirm_budget_alert == 'BUDGET_ALERT_SET'` check so nothing is deployed before the team configures an AWS Billing Budget Alert first.
+    - Builds and publishes the Docker image to `ghcr.io` and uses **only GitHub Actions Secrets** (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_REGION`) with zero credentials stored in the repository.
 - **Monitoring & Real Alerting (`monitoring/checks.py` & `monitoring/alerts.py`)**:
   - Verifies non-empty tables, reject rates, and FX rate freshness for `MAX(order_date)`.
   - On any failure, `send_alert()` appends a UTC timestamped alert to `logs/alerts.log` and dispatches notifications to Slack/Discord (`ALERT_WEBHOOK_URL`) and SMTP email (`ALERT_SMTP_HOST`, `ALERT_EMAIL_TO`).
