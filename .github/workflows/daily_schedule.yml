@@ -2,7 +2,6 @@ name: Daily Scheduled DataOps Pipeline
 
 on:
   schedule:
-    # Runs automatically every day at 06:00 UTC on GitHub's cloud infrastructure (even when laptops are off)
     - cron: "0 6 * * *"
   workflow_dispatch:
     inputs:
@@ -19,7 +18,6 @@ jobs:
   daily-pipeline:
     runs-on: ubuntu-latest
     env:
-      # Optional Slack/Discord incoming webhook URL and SMTP settings stored in GitHub Secrets
       ALERT_WEBHOOK_URL: ${{ secrets.ALERT_WEBHOOK_URL }}
       ALERT_SMTP_HOST: ${{ secrets.ALERT_SMTP_HOST }}
       ALERT_SMTP_PORT: ${{ secrets.ALERT_SMTP_PORT }}
@@ -35,12 +33,29 @@ jobs:
         with:
           python-version: "3.11"
 
+      - name: Restore DuckDB cache
+        uses: actions/cache@v3
+        with:
+          path: warehouse/shop.duckdb
+          key: duckdb-${{ runner.os }}-${{ hashFiles('warehouse/shop.duckdb') }}
+          restore-keys: |
+            duckdb-${{ runner.os }}-
+
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Seed historical 5 valid days and run today's daily pipeline
-        run: |
-          python orchestration/flow.py --all-valid-days
-          if [ -n "${{ github.event.inputs.run_date }}" ] && [ -n "${{ github.event.inputs.orders_path }}" ]; then
-            python orchestration/flow.py --date "${{ github.event.inputs.run_date }}" --orders "${{ github.event.inputs.orders_path }}"
-          fi
+      - name: Seed historical 5 valid days
+        run: python orchestration/flow.py --all-valid-days
+
+      - name: Run today
+        run: python orchestration/flow.py
+
+      - name: Run custom inputs if provided
+        if: ${{ github.event.inputs.run_date != '' && github.event.inputs.orders_path != '' }}
+        run: python orchestration/flow.py --date "${{ github.event.inputs.run_date }}" --orders "${{ github.event.inputs.orders_path }}"
+
+      - name: Save DuckDB cache
+        uses: actions/cache@v3
+        with:
+          path: warehouse/shop.duckdb
+          key: duckduckdb-${{ runner.os }}-${{ hashFiles('warehouse/shop.duckdb') }}
