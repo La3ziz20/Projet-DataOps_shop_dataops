@@ -74,5 +74,29 @@ def check_contract(df: pd.DataFrame, contract_or_path: str | Path | dict[str, An
                     f"{col_name}: outside allowed_values {sorted(allowed)} ({bad_allowed} bad rows)"
                 )
 
+        # Check type constraints (new)
+        if "type" in rules:
+            expected_type = rules["type"].lower()
+            if expected_type == "date":
+                dates = pd.to_datetime(series, errors="coerce")
+                bad_type = int(dates.isna().sum())
+                if bad_type > 0:
+                    violations.append(f"{col_name}: type date ({bad_type} bad rows)")
+            elif expected_type == "integer":
+                numeric = pd.to_numeric(series, errors="coerce")
+                bad_type = int((numeric.isna() | (numeric % 1 != 0)).sum())
+                if bad_type > 0:
+                    violations.append(f"{col_name}: type integer ({bad_type} bad rows)")
+            elif expected_type == "float":
+                numeric = pd.to_numeric(series, errors="coerce")
+                bad_type = int(numeric.isna().sum())
+                if bad_type > 0:
+                    violations.append(f"{col_name}: type float ({bad_type} bad rows)")
+            elif expected_type == "string":
+                # Count non-string, non-null values as bad
+                bad_type = int(series.apply(lambda x: not pd.isna(x) and not isinstance(x, str)).sum())
+                if bad_type > 0:
+                    violations.append(f"{col_name}: type string ({bad_type} bad rows)")
+
     if violations:
         raise DataQualityError("Contract check failed -> " + "; ".join(violations))

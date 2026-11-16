@@ -1,3 +1,4 @@
+version: 1
 dataset: orders
 columns:
   order_id:
@@ -5,6 +6,7 @@ columns:
     unique: true
   order_date:
     not_null: true
+    type: date
   customer_id:
     not_null: true
   country:
@@ -20,7 +22,9 @@ columns:
   quantity:
     not_null: true
     min: 1
+    type: integer
   unit_price:
     not_null: true
     min: 0.01
     max: 1000.0
+    type: float

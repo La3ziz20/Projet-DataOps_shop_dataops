@@ -1,13 +1,18 @@
+version: 1
 dataset: frankfurter_fx
 columns:
   rate_date:
     not_null: true
+    type: date
   base:
     not_null: true
     allowed_values:
       - EUR
+    type: string
   currency:
     not_null: true
+    type: string
   rate:
     not_null: true
     min: 0.0001
+    type: float
